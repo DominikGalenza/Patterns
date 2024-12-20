@@ -8,60 +8,93 @@
 AGuardTower_CH5_1::AGuardTower_CH5_1()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	_RotateForward = true;
-	_EnemySpotted = false;
-	_DetectionRange = 4000.f;
-	_DetectionRadius = 250.f;
+	RotateForward = true;
+	EnemySpotted = false;
+	DetectionRange = 4000.f;
+	DetectionRadius = 250.f;
 
-	_TowerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TowerMesh"));
-	RootComponent = _TowerMesh;
+	TowerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TowerMesh"));
+	RootComponent = TowerMesh;
 	
-	_LightPivot = CreateDefaultSubobject<USceneComponent>(TEXT("LightPivot"));
-	_LightPivot->SetupAttachment(_TowerMesh);
+	LightPivot = CreateDefaultSubobject<USceneComponent>(TEXT("LightPivot"));
+	LightPivot->SetupAttachment(TowerMesh);
 	
-	_LightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LightMesh"));
-	_LightMesh->SetupAttachment(_LightPivot);
+	LightMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("LightMesh"));
+	LightMesh->SetupAttachment(LightPivot);
 	
-	_SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
-	_SpotLight->SetupAttachment(_LightMesh);
+	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
+	SpotLight->SetupAttachment(LightMesh);
 	
-	_Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
-	_Arrow->SetupAttachment(_LightMesh);
+	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
+	Arrow->SetupAttachment(LightMesh);
+
+	TRotateLight = CreateDefaultSubobject<UTimelineComponent>(TEXT("TRotateLight"));
+	OnTimelineUpdate.BindUFunction(this, FName("HandleRotateLightUpdate"));
+	OnTimelineFinished.BindUFunction(this, FName("HandleRotateLightFinished"));
+}
+
+void AGuardTower_CH5_1::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (Curve == nullptr)
+	{
+		return;
+	}
+
+	TRotateLight->AddInterpFloat(Curve, OnTimelineUpdate, FName("Alpha"));
+	TRotateLight->SetTimelineFinishedFunc(OnTimelineFinished);
+	TRotateLight->SetLooping(false);
+	TRotateLight->SetIgnoreTimeDilation(true);
+
+	StartRotation();
 }
 
 void AGuardTower_CH5_1::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
-	FVector startLocation = _Arrow->GetComponentLocation();
-	FVector endLocation = _Arrow->GetComponentLocation() + (_Arrow->GetForwardVector() * _DetectionRange);
+	FVector startLocation = Arrow->GetComponentLocation();
+	FVector endLocation = Arrow->GetComponentLocation() + (Arrow->GetForwardVector() * DetectionRange);
 	FHitResult hit;
 	TArray<AActor*> ActorsToIgnore;
-	UKismetSystemLibrary::SphereTraceSingle(GetWorld(), startLocation, endLocation, _DetectionRadius,
+	UKismetSystemLibrary::SphereTraceSingle(GetWorld(), startLocation, endLocation, DetectionRadius,
 		UEngineTypes::ConvertToTraceType(ECC_Visibility), false,
 		ActorsToIgnore, EDrawDebugTrace::ForOneFrame, hit, true);
 
 	ACharacter* otherCasted = Cast<ACharacter>(hit.GetActor());
-	_EnemySpotted = (otherCasted != nullptr);
+	EnemySpotted = (otherCasted != nullptr);
 
-	if(!_EnemySpotted)
+	if (EnemySpotted)
 	{
-		if(_RotateForward)
-		{
-			_LightPivot->AddLocalRotation(FRotator(0.0, 0.2, 0.0));
-			if(FMath::IsNearlyEqual(_LightPivot->GetRelativeRotation().Yaw, 40.f))
-			{
-				_RotateForward = false;
-			}
-		}
-		else
-		{
-			_LightPivot->AddLocalRotation(FRotator(0.0, -0.2, 0.0));
-			if(FMath::IsNearlyEqual(_LightPivot->GetRelativeRotation().Yaw, -40.f))
-			{
-				_RotateForward = true;
-			}
-		}
+		StopRotation();
 	}
 }
 
+void AGuardTower_CH5_1::HandleRotateLightUpdate(float value)
+{
+	LightPivot->SetRelativeRotation(FRotator(0.f, FMath::Lerp(-40.f, 40.f, value), 0.f));
+}
+
+void AGuardTower_CH5_1::HandleRotateLightFinished()
+{
+	RotateForward = !RotateForward;
+	StartRotation();
+}
+
+void AGuardTower_CH5_1::StartRotation()
+{
+	if (RotateForward)
+	{
+		TRotateLight->Play();
+	}
+	else
+	{
+		TRotateLight->Reverse();
+	}
+}
+
+void AGuardTower_CH5_1::StopRotation()
+{
+	TRotateLight->Stop();
+}
