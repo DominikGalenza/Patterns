@@ -31,6 +31,11 @@ AGuardTower_CH5_1::AGuardTower_CH5_1()
 	TRotateLight = CreateDefaultSubobject<UTimelineComponent>(TEXT("TRotateLight"));
 	OnTimelineUpdate.BindUFunction(this, FName("HandleRotateLightUpdate"));
 	OnTimelineFinished.BindUFunction(this, FName("HandleRotateLightFinished"));
+
+	Sphere = CreateDefaultSubobject<USphereComponent>(TEXT("Sphere"));
+	Sphere->SetupAttachment(LightMesh);
+	Sphere->OnComponentBeginOverlap.AddDynamic(this, &AGuardTower_CH5_1::OnSphereOverlapBegin);
+	Sphere->OnComponentEndOverlap.AddDynamic(this, &AGuardTower_CH5_1::OnSphereOverlapEnd);
 }
 
 void AGuardTower_CH5_1::BeginPlay()
@@ -48,27 +53,6 @@ void AGuardTower_CH5_1::BeginPlay()
 	TRotateLight->SetIgnoreTimeDilation(true);
 
 	StartRotation();
-}
-
-void AGuardTower_CH5_1::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	
-	FVector startLocation = Arrow->GetComponentLocation();
-	FVector endLocation = Arrow->GetComponentLocation() + (Arrow->GetForwardVector() * DetectionRange);
-	FHitResult hit;
-	TArray<AActor*> ActorsToIgnore;
-	UKismetSystemLibrary::SphereTraceSingle(GetWorld(), startLocation, endLocation, DetectionRadius,
-		UEngineTypes::ConvertToTraceType(ECC_Visibility), false,
-		ActorsToIgnore, EDrawDebugTrace::ForOneFrame, hit, true);
-
-	ACharacter* otherCasted = Cast<ACharacter>(hit.GetActor());
-	EnemySpotted = (otherCasted != nullptr);
-
-	if (EnemySpotted)
-	{
-		StopRotation();
-	}
 }
 
 void AGuardTower_CH5_1::HandleRotateLightUpdate(float value)
@@ -98,3 +82,44 @@ void AGuardTower_CH5_1::StopRotation()
 {
 	TRotateLight->Stop();
 }
+
+void AGuardTower_CH5_1::OnSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool FromSweep, const FHitResult& SweepResult)
+{
+	if (EnemyUnit != nullptr)
+	{
+		return;
+	}
+
+	EnemyUnit = Cast<ACharacter>(OtherActor);
+
+	if (EnemyUnit == nullptr)
+	{
+		return;
+	}
+
+	FHitResult hit(ForceInit);
+	FVector start = Arrow->GetComponentLocation();
+	FVector end = EnemyUnit->GetActorLocation();
+
+	if (UKismetSystemLibrary::LineTraceSingle(GetWorld(), start, end, UEngineTypes::ConvertToTraceType(ECC_Visibility),
+		false, { EnemyUnit }, EDrawDebugTrace::ForDuration, hit, true, FLinearColor::Red, FLinearColor::Green, 0.5f))
+	{
+		return;
+	}
+
+	EnemySpotted = true;
+	StopRotation();
+}
+
+void AGuardTower_CH5_1::OnSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (EnemyUnit != OtherActor)
+	{
+		return;
+	}
+
+	EnemySpotted = false;
+	EnemyUnit = nullptr;
+	StartRotation();
+}
+

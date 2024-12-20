@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Components/SphereComponent.h"
 #include "Components/TimelineComponent.h"
 #include "GuardTower_CH5_1.generated.h"
 
@@ -27,6 +28,9 @@ class RTS_AI_API AGuardTower_CH5_1 : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
 	TObjectPtr<UArrowComponent> Arrow;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	TObjectPtr<USphereComponent> Sphere;
+
 	FOnTimelineFloat OnTimelineUpdate;
 	FOnTimelineEventStatic OnTimelineFinished;
 
@@ -42,8 +46,6 @@ class RTS_AI_API AGuardTower_CH5_1 : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AGuardTower_CH5_1();
-
-	virtual void Tick(float DeltaTime) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -65,4 +67,13 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	UCurveFloat* Curve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<ACharacter> EnemyUnit;
+
+	UFUNCTION()
+	void OnSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool FromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 };
