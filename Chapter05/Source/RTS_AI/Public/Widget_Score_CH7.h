@@ -12,7 +12,7 @@ class RTS_AI_API UWidget_Score_CH7 : public UUserWidget
 
 public:
 	virtual void NativeConstruct() override;
-	void UpdatePoints(int newPoints);
+	void UpdatePoints(int NewPoints);
 
 protected:
 	UPROPERTY(meta=(BindWidget))

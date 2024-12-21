@@ -19,5 +19,11 @@ public:
 
 protected:
 	UFUNCTION()
-	void Handle_ControllerDeath(AController* casuer, int points);
+	void HandleControllerDeath(AController* Causer, int Points);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<APlayerController_Ch7> PlayerController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TArray<TObjectPtr<AAIController_CH7>> AIControllers;
 };

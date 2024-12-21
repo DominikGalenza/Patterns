@@ -6,7 +6,7 @@
 
 class UHealthComponent;
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIUnitDeathSignature, AController*, Causer, int, Points);
 UCLASS(Abstract)
 class RTS_AI_API AAIUnit_CH7 : public APawn
 {
@@ -14,8 +14,18 @@ class RTS_AI_API AAIUnit_CH7 : public APawn
 
 public:
 	AAIUnit_CH7();
+	void Init();
+
+	UPROPERTY(BlueprintAssignable)
+	FAIUnitDeathSignature OnUnitDeath;
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	TObjectPtr<UHealthComponent> HealthComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int _PointValue;
+	int PointValue;
+
+	UFUNCTION()
+	void HandleHealthDeath(AController* Causer);
 };
