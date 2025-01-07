@@ -2,6 +2,7 @@
 
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "CommandUnitMove.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 AEliteUnit::AEliteUnit()
@@ -10,25 +11,25 @@ AEliteUnit::AEliteUnit()
 
 void AEliteUnit::Init(UBlackboardComponent* inBlackboard)
 {
-	_isMoving = false;
-	_Blackboard = inBlackboard;
+	bIsMoving = false;
+	Blackboard = inBlackboard;
 }
 
 void AEliteUnit::StopMoving_Implementation()
 {
-	_isMoving = false;
+	bIsMoving = false;
 	
-	_Blackboard->SetValueAsBool("HasMoveLocation", false);
-	_Blackboard->ClearValue("MoveToLocation");
+	Blackboard->SetValueAsBool("HasMoveLocation", false);
+	Blackboard->ClearValue("MoveToLocation");
 	
 }
 
 void AEliteUnit::SetMoveLocation_Implementation(FVector targetLocation)
 {
-	_isMoving = true;
+	bIsMoving = true;
 	
-	_Blackboard->SetValueAsBool("HasMoveLocation", true);
-	_Blackboard->SetValueAsVector("MoveToLocation", targetLocation);
+	Blackboard->SetValueAsBool("HasMoveLocation", true);
+	Blackboard->SetValueAsVector("MoveToLocation", targetLocation);
 }
 
 void AEliteUnit::AttackTarget_Implementation(UObject* target)
@@ -54,12 +55,27 @@ void AEliteUnit::AttackTarget_Implementation(UObject* target)
 
 void AEliteUnit::QueueMoveLocation_Implementation(FVector targetLocation)
 {
-	
+	if (!bIsMoving)
+	{
+		AIController->GetBlackboardComponent()->SetValueAsVector("MoveToLocation", targetLocation);
+		bIsMoving = true;
+		return;
+	}
+
+	TObjectPtr<UCommandUnitMove> MoveCommand = NewObject<UCommandUnitMove>(this);
+	MoveCommand->Init(this, targetLocation);
+	CommandQueue.Enqueue(MoveCommand);
 }
 
 void AEliteUnit::MoveLocationReached_Implementation()
 {
-
+	bIsMoving = false;
+	if (!CommandQueue.IsEmpty())
+	{
+		TObjectPtr<UCommand> Command;
+		CommandQueue.Dequeue(Command);
+		Command->Execute();
+	}
 	
 	Execute_StopMoving(this);
 }

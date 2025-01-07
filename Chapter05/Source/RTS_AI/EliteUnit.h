@@ -4,9 +4,11 @@
 #include "AIController.h"
 #include "ControllableUnit.h"
 #include "GameFramework/Character.h"
+#include "Command.h"
 #include "EliteUnit.generated.h"
 
 class AWeapon_Base;
+
 UCLASS(Abstract)
 class RTS_AI_API AEliteUnit : public ACharacter, public IControllableUnit
 {
@@ -26,9 +28,11 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
-	TObjectPtr<AAIController> _AIController;
+	TObjectPtr<AAIController> AIController;
 	UPROPERTY(VisibleInstanceOnly)
-	TObjectPtr<UBlackboardComponent> _Blackboard;
+	TObjectPtr<UBlackboardComponent> Blackboard;
 	UPROPERTY(VisibleInstanceOnly)
-	bool _isMoving;
+	bool bIsMoving;
+
+	TQueue<TObjectPtr<UCommand>> CommandQueue;
 };
